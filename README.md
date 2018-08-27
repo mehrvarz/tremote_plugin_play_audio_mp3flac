@@ -7,7 +7,7 @@ This repository contains the complete Go source code of a remote control plugin 
 TRemote plugin **play_audio_mp3flac** implements a Jukebox application for MP3 and FLAC content.
 This is useful sample code, demonstrating how things can be implemented in the 
 context of a TRemote plugin. This is also a very useful application 
-that works reliably and fun to use.
+that works reliably and is fun to use.
 
 
 # Building the plugin
