@@ -24,13 +24,24 @@ This will create the "play_audio_mp3flac.so" binary. Copy the binary over to you
 
 # Button mapping
 
-The following entry in "mapping.txt" binds the jukebox plugin to a specific button (P3) and hand over the path to the audio content (/media/sda1/Music/Jazz):
+The following entries in "mapping.txt" bind the jukebox to several buttons and hand over different local locations:
 
 ```
 P3, Jazz,  play_audio|/media/sda1/Music/Jazz
+P4, Pop,   play_audio|/media/sda1/Music/Pop
+P8, Rock,  play_audio|/media/sda1/Music/Rock
 ```
 
+A short button press will start a random playback of audio files from a specified folder. 
+From this moment forward audio playback will continue randomly until it will be stopped. 
+When the same button is pressed again, audio playback will skip to the next song. 
+A history of played songs is kept. If the same button is long-pressed (at least 500ms), 
+audio playback will skip back one song. Long press again will skip back 
+another song. The play history is also being used to prevent songs from 
+playing again in short order. A different button can optionally be used 
+to implement a pause function.
 
+Note that a plugin does not know anything about remote controls, about Bluetooth or how a button event is delivered to it. It only cares about the implementation of the response action. The mapping file bindes the two sides together.
 
 
 

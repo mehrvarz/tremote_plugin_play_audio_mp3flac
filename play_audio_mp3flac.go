@@ -3,13 +3,13 @@ TRemote plugin play_audio_mp3flac implements a jukebox for m3p and flac content.
 This is useful sample code, demonstrating how things can be implemented in the 
 context of a TRemote plugin. This is also a very useful standalone implementation 
 of a jukebox, that is reliable and fun to use.
-play_audio_mp3flac is bound to a single button. A short press starts a random 
+play_audio_mp3flac is bound to a single button. A short press starts random 
 playback of audio files from a specified folder. From this moment forward audio
 playback will continue randomly until it is stopped externally. When the same 
 button is pressed again, audio playback will skip to the next song. If the same 
 button is long-pressed (at least 500ms), audio playback will skip back one song. 
-play_audio_mp3flac keeps a history of 50 songs. Pressing long again will skip 
-back one more song. The play history is also being used to prevent songs from 
+play_audio_mp3flac keeps a history of 50 songs. Long press again will skip back 
+one song at a time. The play history is also being used to prevent songs from 
 randomly playing again in short order. Optionally, a second button may be used 
 to implement a pause function.
 */
