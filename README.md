@@ -18,7 +18,7 @@ TRemote plugins are based on Go Modules. You need to use [Go v1.11](https://dl.g
 After cloning this repository enter the following command to build the plugin:
 
 ```
-CGO_ENABLED=1 go build -buildmode=plugin
+CGO_ENABLED=1 go build -buildmode=plugin play_audio_mp3flac.go
 ```
 This will create the "play_audio_mp3flac.so" binary. Copy the binary over to your Tremote folder, add a mapping entry like the one shown below to your mapping.txt file and restart the TRemote service. You can now invoke your plugin functionality via a Bluetooh remote control.
 
