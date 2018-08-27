@@ -13,7 +13,7 @@ play_audio_mp3flac makes use of the following projects: [bobertlo/go-mpg123](htt
 
 # Building the plugin
 
-TRemote plugins are based on Go Modules. You need to use [Go v1.11](https://dl.google.com/go/go1.11.linux-armv6l.tar.gz) (direct dl link for linux-armv6l) to build TRemote plugins. The "go version" command should return "go version go1.11 linux/arm".
+TRemote plugins are based on Go Modules. You need to use [Go v1.11](https://dl.google.com/go/go1.11.linux-armv6l.tar.gz) (direct dl link for linux-armv6l) to build this plugin. Before you start make sure your "go version" command returns "go version go1.11 linux/arm".
 
 After cloning this repository enter the following command to build the plugin:
 
