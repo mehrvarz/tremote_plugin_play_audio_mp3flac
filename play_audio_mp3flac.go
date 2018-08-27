@@ -10,7 +10,7 @@ button is pressed again, audio playback will skip to the next song. If the same
 button is long-pressed (at least 500ms), audio playback will skip back one song. 
 play_audio_mp3flac keeps a history of 50 songs. Long press again will skip back 
 one song at a time. The play history is also being used to prevent songs from 
-randomly playing again in short order. Optionally, a second button may be used 
+randomly playing again in short order. A different button can optionally be used 
 to implement a pause function.
 */
 package main

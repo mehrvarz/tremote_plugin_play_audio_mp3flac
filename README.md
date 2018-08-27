@@ -9,6 +9,8 @@ This is useful sample code, demonstrating how things can be implemented in the
 context of a TRemote plugin. This is also a very useful application 
 that works reliably and is fun to use.
 
+play_audio_mp3flac makes use of the following projects [bobertlo/go-mpg123](github.com/bobertlo/go-mpg123), [mewkiz/flac](github.com/mewkiz/flac), [gordonklaus/portaudio](github.com/gordonklaus/portaudio), [dhowden/tag](github.com/dhowden/tag).
+
 
 # Building the plugin
 
