@@ -67,7 +67,7 @@ longpress) or false (for shortpress) to have it play the next song, or the
 previous one. We use a Mutex to prevent interruption during the short time 
 Action() is active.
 */
-func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, rcs* tremote_plugin.RemoteControlSpec, ph tremote_plugin.PluginHelper) error {
+func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, rcs* tremote_plugin.RemoteControlSpec, ph tremote_plugin.PluginHelper, wg *sync.WaitGroup) error {
 	var lock_Mutex	sync.Mutex
 	lock_Mutex.Lock()
 	logm = log
@@ -91,7 +91,7 @@ func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, rcs*
 			if (*ph.PLastPressedMS)[pid]>0 {
 				// button is still pressed; this is a longpress; let's take care of it
 				(*ph.PLastPressActionDone)[pid] = true
-				actioncall(true, pid, strArray, ph)
+				actioncall(true, pid, strArray, ph, wg)
 			}
 		}()
 
@@ -104,7 +104,7 @@ func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, rcs*
 			(*ph.PLastPressActionDone)[pid] = true
 			//logm.Debugf("%s short press pid=%d %d",pluginname,pid,(*ph.PLastPressActionDone)[pid])
 			go func() {
-				actioncall(false, pid, strArray, ph)
+				actioncall(false, pid, strArray, ph, wg)
 			}()
 		}
 	}
@@ -127,9 +127,11 @@ If longpress is set true, we skip back one song using songsPlayedQueue.Pop().
 If longpress is set to false, we start our main jukebox funktion and enter a 
 random song playback loop.
 */
-func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.PluginHelper) {
+func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.PluginHelper, wg *sync.WaitGroup) {
+	wg.Add(1)
 	defer func() {
 		if err := recover(); err != nil {
+			wg.Done()
  			logm.Errorf("%s panic=%s", pluginname, err)
 			buf := make([]byte, 1<<16)
 			runtime.Stack(buf, true)
@@ -297,6 +299,7 @@ end:
 	if *ph.PauseAudioPlayerChan!=nil {
 		*ph.PauseAudioPlayerChan = nil
 	}
+	wg.Done()
 }
 
 func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, instance int, ourStopAudioPlayerChan *chan bool) bool {
