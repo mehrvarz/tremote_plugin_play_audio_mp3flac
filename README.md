@@ -24,7 +24,7 @@ This will create the "play_audio_mp3flac.so" binary. Copy the binary over to you
 
 If you intend to modify this plugin or create a similar one, you should also take a look at the [TRemote plugin base package](https://github.com/mehrvarz/tremote_plugin).
 
-You can use the runtrp tool to run TRemote plugins from the command line. Download for [linux-armv6l](https://github.com/mehrvarz/tremote_plugin/tree/master/bin.linux.ARM6) and for [linux-amd64](https://github.com/mehrvarz/tremote_plugin/tree/master/bin.linux.AMD64).
+You can use the runtrp tool to run TRemote plugins from the command line. Download runtrp for [linux-armv6l](https://github.com/mehrvarz/tremote_plugin/tree/master/bin.linux.ARM6) and for [linux-amd64](https://github.com/mehrvarz/tremote_plugin/tree/master/bin.linux.AMD64).
 
 
 # Button mapping
