@@ -46,7 +46,8 @@ another song. The play history is also being used to prevent songs from
 playing again in short order. A different button can optionally be used 
 to implement a pause function.
 
-Note that a plugin does not know anything about remote controls, about Bluetooth or how a button event is delivered to it. It only cares about the implementation of the response action. The mapping file bindes the two sides together.
+Note that a plugin does not know anything about remote controls, about Bluetooth or how a button event is delivered to it. It only takes care of implementing the response action. The mapping file bindes the two sides together.
+
 
 
 
