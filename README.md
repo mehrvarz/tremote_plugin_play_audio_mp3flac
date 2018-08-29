@@ -9,7 +9,7 @@ This is useful sample code, demonstrating how things can be implemented in the
 context of a TRemote plugin. This is also a very useful application 
 that works reliably and is fun to use.
 
-play_audio_mp3flac makes use of the following projects: [bobertlo/go-mpg123](http://github.com/bobertlo/go-mpg123), [mewkiz/flac](http://github.com/mewkiz/flac), [gordonklaus/portaudio](http://github.com/gordonklaus/portaudio) and others.
+play_audio_mp3flac makes use of the following projects: [bobertlo/go-mpg123](http://github.com/bobertlo/go-mpg123), [mewkiz/flac](http://github.com/mewkiz/flac), [gordonklaus/portaudio](http://github.com/gordonklaus/portaudio). This packages will be automatically fetched by "go build".
 
 # Building the plugin
 
@@ -21,6 +21,10 @@ After cloning this repository enter the following command to build the plugin:
 CGO_ENABLED=1 go build -buildmode=plugin play_audio_mp3flac.go
 ```
 This will create the "play_audio_mp3flac.so" binary. Copy the binary over to your Tremote folder, add a mapping entry like the one shown below to your mapping.txt file and restart the TRemote service. You can now invoke your plugin functionality via a Bluetooh remote control.
+
+If you intend to modify this plugin or create a similar one, you should also take a look at the [TRemote plugin base package](https://github.com/mehrvarz/tremote_plugin).
+
+You can use the runtrp tool to run TRemote plugins from the command line. Download for [linux-armv6l](https://github.com/mehrvarz/tremote_plugin/tree/master/bin.linux.ARM6) and for [linux-amd64](https://github.com/mehrvarz/tremote_plugin/tree/master/bin.linux.AMD64).
 
 
 # Button mapping
