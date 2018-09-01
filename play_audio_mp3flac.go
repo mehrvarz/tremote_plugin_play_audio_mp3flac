@@ -88,8 +88,8 @@ func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, rcs*
 		go func() {
 			// let's see if it becomes a longpress
 			time.Sleep(tremote_plugin.LongPressDelay * time.Millisecond)
-			if (*ph.PLastPressedMS)[pid]>0 {
-				// button is still pressed; this is a longpress; let's take care of it
+			if (*ph.PLastPressedMS)[pid]>0 && !(*ph.PLastPressActionDone)[pid]{
+				// button is still pressed; job not yet taken care of; this is a longpress; let's take care of it
 				(*ph.PLastPressActionDone)[pid] = true
 				actioncall(true, pid, strArray, ph, wg)
 			}
@@ -128,6 +128,9 @@ If longpress is set to false, we start our main jukebox funktion and enter a
 random song playback loop.
 */
 func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.PluginHelper, wg *sync.WaitGroup) {
+	var lock_Mutex	sync.Mutex
+	lock_Mutex.Lock()
+
 	wg.Add(1)
 	defer func() {
 		if err := recover(); err != nil {
@@ -140,7 +143,6 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 	}()
 
 	instance := instanceNumber
-	var ourStopAudioPlayerChan chan bool = nil
 
 	// set PIdLastPressed (only music playing plugins need to do this)
 	*ph.PIdLastPressed = pid
@@ -157,20 +159,38 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 			time.Sleep(200 * time.Millisecond)
 		} else {
 			logm.Warningf("%s (%d) no StopAudioPlayerChan exists to stop other instance",pluginname,instance)
+			return
 		}
 	} else {
 		// No instance of our player is currently active. There may be some other audio playing instance.
 		// Stop whatever audio player may currently be active.
-		logm.Debugf("%s (%d) on start no PluginIsActive -> StopCurrentAudioPlayback()",pluginname,instance)
+		logm.Warningf("%s (%d) on start no PluginIsActive -> StopCurrentAudioPlayback()",pluginname,instance)
 		ph.StopCurrentAudioPlayback()
 		time.Sleep(200 * time.Millisecond)
 	}
 
+	var ourStopAudioPlayerChan chan bool = nil
+	if *ph.StopAudioPlayerChan==nil {
+		// this allows parent to stop us
+		ourStopAudioPlayerChan = make(chan bool)
+		*ph.StopAudioPlayerChan = ourStopAudioPlayerChan
+	} else {
+		logm.Warningf("%s (%d) StopAudioPlayerChan!=nil",pluginname,instance)
+	}
+	if *ph.PauseAudioPlayerChan==nil {
+		// this allows parent to pause us
+		*ph.PauseAudioPlayerChan = make(chan bool)
+	} else {
+		logm.Warningf("%s (%d) PauseAudioPlayerChan!=nil",pluginname,instance)
+	}
+
+	*ph.PluginIsActive = true
+	lock_Mutex.Unlock()
 	folder := strArray[0]
 
 	if longpress {
 		// play previous song from songsPlayedQueue
-		logm.Infof("%s (%d) start long-press step back",pluginname,instance)
+		logm.Infof("%s (%d) start long-press step back #########################",pluginname,instance)
 
 		currentFile := songsPlayedQueue.Pop()
 		if currentFile == nil {
@@ -185,18 +205,15 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 			goto end
 		}
 
-		*ph.PluginIsActive = true
 		pathfile := folder + "/" + previousFile.Value
-		if playSong(previousFile.Value,pathfile,ph,instance,&ourStopAudioPlayerChan) {
+		if playSong(previousFile.Value,pathfile,ph,instance) {
 			// manually aborted
 			logm.Debugf("%s (%d) done playSong step back - manually aborted",pluginname, instance)
-			abortFolderShuffle = false
 			goto end
 		}
 		if abortFolderShuffle {
 			// possibly unexpected portaudioStream.Write() issue
 			logm.Debugf("%s (%d) done playSong step back - abortFolderShuffle",pluginname, instance)
-			abortFolderShuffle = false
 			goto end
 		}
 		logm.Debugf("%s (%d) done playSong step back",pluginname, instance)
@@ -204,7 +221,6 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 
 	} else {
 		// short press
-		*ph.PluginIsActive = true
 		// continue with file loop
 	}
 
@@ -274,16 +290,14 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 			abortFolderShuffle = true
 		}
 		
-		if playSong(fileName,pathfile,ph,instance,&ourStopAudioPlayerChan) {
+		if playSong(fileName,pathfile,ph,instance) {
 			// manually aborted
-			logm.Debugf("%s (%d) done playSong step back - manually aborted",pluginname, instance)
-			abortFolderShuffle = false
+			logm.Debugf("%s (%d) done playSong - manually aborted",pluginname, instance)
 			break
 		}
 		if abortFolderShuffle {
 			// possibly unexpected portaudioStream.Write() issue
 			logm.Debugf("%s (%d) abortFolderShuffle",pluginname, instance)
-			abortFolderShuffle = false
 			break
 		}
 		
@@ -291,18 +305,35 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 	}
 
 end:
+	//var lock_Mutex	sync.Mutex
+	lock_Mutex.Lock()
 	logm.Debugf("%s (%d) exit",pluginname, instance)
-	*ph.PluginIsActive = false
 	if *ph.StopAudioPlayerChan!=nil && *ph.StopAudioPlayerChan==ourStopAudioPlayerChan {
 		*ph.StopAudioPlayerChan = nil
+	} else {
+		if *ph.StopAudioPlayerChan==nil {
+			logm.Warningf("%s (%d) StopAudioPlayerChan was nil",pluginname, instance)
+		} else if *ph.StopAudioPlayerChan!=ourStopAudioPlayerChan {
+			logm.Warningf("%s (%d) StopAudioPlayerChan!=ourStopAudioPlayerChan",pluginname, instance)
+		} else {
+			logm.Warningf("%s (%d) what?",pluginname, instance)
+		}
 	}
 	if *ph.PauseAudioPlayerChan!=nil {
 		*ph.PauseAudioPlayerChan = nil
+	} else {
+		logm.Warningf("%s (%d) ph.PauseAudioPlayerChan was nil",pluginname, instance)
 	}
+	if !abortFolderShuffle {
+		*ph.PluginIsActive = false
+		// if our playSong() was aborted we let PluginIsActive stay
+	}
+	abortFolderShuffle = false
 	wg.Done()
+	lock_Mutex.Unlock()
 }
 
-func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, instance int, ourStopAudioPlayerChan *chan bool) bool {
+func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, instance int) bool {
 	// returns true if manually aborted or on fatal error
 	isMp3 := false
 	isFlac := false
@@ -333,7 +364,7 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 		title  := stripCtlAndExtFromUTF8(m.Title())
 		artist := stripCtlAndExtFromUTF8(m.Artist())
 		album  := stripCtlAndExtFromUTF8(m.Album())
-		logm.Debugf("%s tags: [%s, %s, %s]", pluginname, title, artist, album)
+		logm.Debugf("%s (%d) tags: [%s, %s, %s]", pluginname, instance, title, artist, album)
 
 		id3tags = title
 		if artist!="" {
@@ -358,7 +389,7 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 
 
 	songsPlayedQueue.Push(&go_queue.Node{fileName})
-	logm.Debugf("%s start player thread...", pluginname)
+	logm.Debugf("%s (%d) start player thread...", pluginname,instance)
 
 	var sampleRate int64
 	var channels int
@@ -390,7 +421,7 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 		sampleRate, channels, _ = mp3decoder.GetFormat()
 		bitsPerSample  = 16
 		bytesPerSample = bitsPerSample/8
-		logm.Debugf("%s mpg123 sampleRate=%d channels=%d", pluginname, sampleRate, channels)
+		logm.Infof("%s mpg123 sampleRate=%d channels=%d", pluginname, sampleRate, channels)
 
 		// make sure output format does not change
 		mp3decoder.FormatNone()
@@ -410,7 +441,7 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 		sampleRate     = int64(flacstream.Info.SampleRate)
 		bitsPerSample  = int(flacstream.Info.BitsPerSample)
 		bytesPerSample = bitsPerSample/8
-		logm.Debugf("%s file=%s sampleRate=%d channels=%d bps=%d Bps=%d", 
+		logm.Infof("%s file=%s sampleRate=%d channels=%d bps=%d Bps=%d", 
 			pluginname, pathfile, sampleRate, channels, bitsPerSample, bytesPerSample)
 
 		info := fmt.Sprintf("bps=%d khz=%d",bitsPerSample,sampleRate)
@@ -420,20 +451,12 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 
 	ph.PrintInfo(html.EscapeString(id3tags))
 
+	logm.Debugf("%s (%d) portaudio.Initialize()", pluginname,instance)
 	portaudio.Initialize()
 	defer portaudio.Terminate()
 
-	if *ph.StopAudioPlayerChan==nil {
-		// this allows parent to stop playback
-		*ourStopAudioPlayerChan = make(chan bool)
-		*ph.StopAudioPlayerChan = *ourStopAudioPlayerChan
-	}
-	if *ph.PauseAudioPlayerChan==nil {
-		// this allows parent to pause playback
-		*ph.PauseAudioPlayerChan = make(chan bool)
-	}
-
-	// pump song
+	// pump audio out
+	logm.Debugf("%s (%d) pump audio out...", pluginname,instance)
 	var quitPlayback   = false
 	var playbackPaused = false
 	var framecount     = 0
@@ -449,7 +472,6 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 		if playbackPaused {
 			//logm.Debugf("%s playbackPaused", pluginname)
 			time.Sleep(500 * time.Millisecond)
-			// TODO: blink PrintInfo() ??
 
 		} else {
 			var j = 0
@@ -501,15 +523,6 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 
 					audioVolumeUnmute(instance)
 				}
-
-				// copy audio -> portaudio outbuf
-				//err = binary.Read(bytes.NewBuffer(audioBuf[:count]), binary.LittleEndian, outbuf32)
-				//if err != nil {
-				//	// "unexpected EOF" while trying to fill outbuf32, we fail to read from audioBuf
-				//	logm.Warningf("%s copy to portaudio err=%s",pluginname, err.Error())
-				//	ph.PrintStatus("error processing audio data: "+err.Error())
-				//	break
-				//}
 
 				j = 0
 				for i := 0; i < count; i+=2 {
