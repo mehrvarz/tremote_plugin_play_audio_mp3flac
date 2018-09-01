@@ -50,6 +50,7 @@ var (
 	instanceNumber      = 0
 	AudioControl        = "amixer set Master -q"
 	abortFolderShuffle  = false
+	waitingForOlderInstanceToStop = false
 )
 
 func init() {
@@ -148,24 +149,24 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 	*ph.PIdLastPressed = pid
 	logm.Infof("%s (%d) actioncall longpress=%v arg=%s", pluginname, instance, longpress, strArray[0])
 
-	if *ph.PluginIsActive {
-		// An instance of our player is already active.
-		logm.Debugf("%s (%d) on start another instance already running",pluginname,instance)
-		// Stop the older instance.
-		if *ph.StopAudioPlayerChan!=nil {
-			logm.Debugf("%s (%d) stopping other instance...",pluginname,instance)
-			*ph.StopAudioPlayerChan <- true
-			// Wait for the other instance to stop.
-			time.Sleep(200 * time.Millisecond)
-		} else {
-			// likely too many overloading goroutines: giving up
-			logm.Warningf("%s (%d) no StopAudioPlayerChan exists to stop other instance",pluginname,instance)
-			return
-		}
+	if waitingForOlderInstanceToStop {
+		// an older instance of this plugin is already waiting for an even older instance to stop (!)
+		// we likely have too many overlapping actioncall() instances: giving up on this new instance
+		logm.Warningf("%s (%d) exit on waitingForOlderInstanceToStop",pluginname,instance)
+		lock_Mutex.Unlock()
+		return
+	}
+
+	if *ph.StopAudioPlayerChan!=nil {
+		waitingForOlderInstanceToStop = true
+		logm.Debugf("%s (%d) stopping other instance...",pluginname,instance)
+		*ph.StopAudioPlayerChan <- true
+		time.Sleep(200 * time.Millisecond)
 	} else {
 		// No instance of our player is currently active. There may be some other audio playing instance.
 		// Stop whatever audio player may currently be active.
-		logm.Warningf("%s (%d) on start no PluginIsActive -> StopCurrentAudioPlayback()",pluginname,instance)
+		waitingForOlderInstanceToStop = true
+		logm.Debugf("%s (%d) on start no audio Plugin active -> StopCurrentAudioPlayback()",pluginname,instance)
 		ph.StopCurrentAudioPlayback()
 		time.Sleep(200 * time.Millisecond)
 	}
@@ -176,16 +177,17 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 		ourStopAudioPlayerChan = make(chan bool)
 		*ph.StopAudioPlayerChan = ourStopAudioPlayerChan
 	} else {
+		// should never happen
 		logm.Warningf("%s (%d) StopAudioPlayerChan!=nil",pluginname,instance)
 	}
 	if *ph.PauseAudioPlayerChan==nil {
 		// this allows parent to pause us
 		*ph.PauseAudioPlayerChan = make(chan bool)
 	} else {
+		// should never happen
 		logm.Warningf("%s (%d) PauseAudioPlayerChan!=nil",pluginname,instance)
 	}
-
-	*ph.PluginIsActive = true
+	waitingForOlderInstanceToStop = false
 	lock_Mutex.Unlock()
 	folder := strArray[0]
 
@@ -208,7 +210,6 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 
 		pathfile := folder + "/" + previousFile.Value
 		if playSong(previousFile.Value,pathfile,ph,instance) {
-			// manually aborted
 			logm.Debugf("%s (%d) done playSong step back - manually aborted",pluginname, instance)
 			goto end
 		}
@@ -285,20 +286,19 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 			logm.Debugf("%s pathfile=%s", pluginname, pathfile)
 
 		} else {
-			// arg is not a folder but a single file; play back but do not loop
+			// arg is not a folder but a single file; play file; do not loop
 			fileName = folder
 			pathfile = fileName
 			abortFolderShuffle = true
 		}
 		
 		if playSong(fileName,pathfile,ph,instance) {
-			// manually aborted
 			logm.Debugf("%s (%d) done playSong - manually aborted",pluginname, instance)
 			break
 		}
 		if abortFolderShuffle {
-			// possibly unexpected portaudioStream.Write() issue
-			logm.Debugf("%s (%d) abortFolderShuffle",pluginname, instance)
+			// single file playback -or- unexpected/fatal portaudioStream related issue
+			logm.Debugf("%s (%d) exit loop on abortFolderShuffle",pluginname, instance)
 			break
 		}
 		
@@ -306,12 +306,14 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 	}
 
 end:
-	//var lock_Mutex	sync.Mutex
-	lock_Mutex.Lock()
+	var lock_Mutex2	sync.Mutex
+	lock_Mutex2.Lock()
 	logm.Debugf("%s (%d) exit",pluginname, instance)
+	abortFolderShuffle = false
 	if *ph.StopAudioPlayerChan!=nil && *ph.StopAudioPlayerChan==ourStopAudioPlayerChan {
 		*ph.StopAudioPlayerChan = nil
 	} else {
+		// should never happen
 		if *ph.StopAudioPlayerChan==nil {
 			logm.Warningf("%s (%d) StopAudioPlayerChan was nil",pluginname, instance)
 		} else if *ph.StopAudioPlayerChan!=ourStopAudioPlayerChan {
@@ -323,15 +325,11 @@ end:
 	if *ph.PauseAudioPlayerChan!=nil {
 		*ph.PauseAudioPlayerChan = nil
 	} else {
+		// should never happen
 		logm.Warningf("%s (%d) ph.PauseAudioPlayerChan was nil",pluginname, instance)
 	}
-	if !abortFolderShuffle {
-		*ph.PluginIsActive = false
-		// else: if our playSong() was aborted we let PluginIsActive stay
-	}
-	abortFolderShuffle = false
 	wg.Done()
-	lock_Mutex.Unlock()
+	lock_Mutex2.Unlock()
 }
 
 func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, instance int) bool {
@@ -457,18 +455,13 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 
 	// pump audio out
 	logm.Debugf("%s (%d) pump audio out...", pluginname,instance)
-	var quitPlayback   = false
 	var playbackPaused = false
 	var framecount     = 0
 	var portaudioStream *portaudio.Stream
 	var outbuf16 []int16 = nil
 	var outbuf32 []int32 = nil
-
+	var quitPlayback = false
 	for {
-		if quitPlayback {
-			break
-		}
-
 		if playbackPaused {
 			//logm.Debugf("%s playbackPaused", pluginname)
 			time.Sleep(500 * time.Millisecond)
@@ -506,7 +499,6 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 						logm.Warningf("%s error open audio sink for playback err=%s",pluginname, err.Error())
 						ph.PrintStatus("error open audio sink for playback: "+err.Error())
 						abortFolderShuffle = true
-						quitPlayback = true
 						break
 					}
 					defer portaudioStream.Close()
@@ -516,7 +508,6 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 						logm.Warningf("%s error starting audio playback err=%s",pluginname, err.Error())
 						ph.PrintStatus("error starting audio playback: "+err.Error())
 						abortFolderShuffle = true
-						quitPlayback = true
 						break
 					}
 					defer portaudioStream.Stop()
@@ -571,7 +562,6 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 						logm.Warningf("%s error open audio sink for playback err=%s",pluginname, err.Error())
 						ph.PrintStatus("error open audio sink for playback: "+err.Error())
 						abortFolderShuffle = true
-						quitPlayback = true
 						break
 					}
 					defer portaudioStream.Close()
@@ -582,7 +572,6 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 						ph.PrintStatus("error starting audio playback: "+err.Error())
 						portaudioStream.Close()
 						abortFolderShuffle = true
-						quitPlayback = true
 						break
 					}
 					defer portaudioStream.Stop()
@@ -650,6 +639,10 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 			logm.Debugf("%s (%d) pausemode set to %v",pluginname, instance, playbackPaused)
 		default:
 			// default is needed so that the other cases don't block
+		}
+
+		if quitPlayback || abortFolderShuffle {
+			break
 		}
 	}
 
