@@ -158,6 +158,7 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 			// Wait for the other instance to stop.
 			time.Sleep(200 * time.Millisecond)
 		} else {
+			// likely too many overloading goroutines: giving up
 			logm.Warningf("%s (%d) no StopAudioPlayerChan exists to stop other instance",pluginname,instance)
 			return
 		}
@@ -326,7 +327,7 @@ end:
 	}
 	if !abortFolderShuffle {
 		*ph.PluginIsActive = false
-		// if our playSong() was aborted we let PluginIsActive stay
+		// else: if our playSong() was aborted we let PluginIsActive stay
 	}
 	abortFolderShuffle = false
 	wg.Done()
@@ -386,7 +387,6 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 		}
 		logm.Infof("%s tag string: [%s]", pluginname, id3tags)
 	}
-
 
 	songsPlayedQueue.Push(&go_queue.Node{fileName})
 	logm.Debugf("%s (%d) start player thread...", pluginname,instance)
