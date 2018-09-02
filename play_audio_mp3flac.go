@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"time"
 	"strings"
-	"html"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -89,7 +88,7 @@ func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, rcs*
 		go func() {
 			// let's see if it becomes a longpress
 			time.Sleep(tremote_plugin.LongPressDelay * time.Millisecond)
-			if (*ph.PLastPressedMS)[pid]>0 && !(*ph.PLastPressActionDone)[pid]{
+			if (*ph.PLastPressedMS)[pid]>0 && !(*ph.PLastPressActionDone)[pid] {
 				// button is still pressed; job not yet taken care of; this is a longpress; let's take care of it
 				(*ph.PLastPressActionDone)[pid] = true
 				actioncall(true, pid, strArray, ph, wg)
@@ -274,7 +273,7 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 				// if PopOldest() fails, do not continue
 				if songsPlayedQueue.PopOldest()!=nil {
 					logm.Infof("%s found no song; try again after removing oldes song from queue",pluginname)
-					ph.PrintStatus("cannot find any unplayed files")
+					//ph.PrintStatus("cannot find any unplayed files")
 					continue
 				}
 				logm.Infof("%s found no unplayed song; giving up",pluginname)
@@ -421,6 +420,9 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 		bytesPerSample = bitsPerSample/8
 		logm.Infof("%s mpg123 sampleRate=%d channels=%d", pluginname, sampleRate, channels)
 
+		info := fmt.Sprintf("sampleRate %d",sampleRate)
+		ph.PrintStatus(info)
+
 		// make sure output format does not change
 		mp3decoder.FormatNone()
 		mp3decoder.Format(sampleRate, channels, mpg123.ENC_SIGNED_16)
@@ -429,8 +431,8 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 		// create flac decoder instance
 		flacstream, err = flac.Open(pathfile)
 		if err != nil {
-			logm.Warningf("%s error reading flac file err=%s",pluginname, err.Error())
-			ph.PrintStatus("error reading flac file %s"+err.Error())
+			logm.Warningf("%s error open flac file err=%s",pluginname, err.Error())
+			ph.PrintStatus("error open flac file %s"+err.Error())
 			return false
 		}
 		defer flacstream.Close()
@@ -444,10 +446,10 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 
 		info := fmt.Sprintf("bps=%d khz=%d",bitsPerSample,sampleRate)
 		logm.Debugf("%s info=%s",pluginname, info)
-		ph.PrintInfo(info)	// TODO: does not show up?
+		ph.PrintStatus(info)	// TODO: does not show up?
 	}
 
-	ph.PrintInfo(html.EscapeString(id3tags))
+	ph.PrintInfo(id3tags)
 
 	logm.Debugf("%s (%d) portaudio.Initialize()", pluginname,instance)
 	portaudio.Initialize()
