@@ -49,5 +49,13 @@ to implement a pause function.
 Note that a plugin does not know anything about remote controls, about Bluetooth or how a button event is delivered to it. It only takes care of implementing the response action. The mapping file binds the two sides together.
 
 
+# Bitperfect Audio
+
+I created this plugin in order to play back my 24/96 audio collection, which is stored in lossless FLAC format. 
+I am using a high quality USB DAC connected to my Raspberry Pi for this purpose.
+Rasbian OS is able to drive a USB DAC with 24 bit, 96 khz audio content in "bitperfect" fashion.
+All that is needed is an app, that will push the audio stream without modifying any bits.
+Unfortunately this is not always given. Some apps get smart about the audio and apply manipulations for some reason or another.
+So here you have a solution that forwards the audio without applying any changes. Enjoy.
 
 
