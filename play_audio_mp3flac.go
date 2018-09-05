@@ -58,16 +58,19 @@ func init() {
 }
 
 /*
-Action() is the main entry point for any TRemote plugin. We need to make 
-sure Action() will always return super quickly no matter what. This is why 
-we start new goroutines for opertations that take more time. The first thing 
-we must do is to figure out if we are coping with a short or a long press 
-event. Once this is determined, we call actioncall() with true (for 
-longpress) or false (for shortpress) to have it play the next song, or the 
-previous one. We use a Mutex to prevent interruption during the short time 
-Action() is active.
+Action() is the entry point for any TRemote plugin. We need to make
+sure Action() will always return super quickly no matter what. This is why
+we start new goroutines for opertations that take more time. The first thing
+we want to do is to figure out if we are coping with a short or a long press
+event.
+Arguments:
+pid:             0=P1, 1=P2, etc.
+longpress:       if true, button was specified with P#L and is a longpress
+pressedDuration: if 0, button just pressed; if >0, released, MS since pressed
+wg:              for long term operations use Add() and Done()
 */
-func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, rcs* tremote_plugin.RemoteControlSpec, ph tremote_plugin.PluginHelper, wg *sync.WaitGroup) error {
+func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, rcs* tremote_plugin.RemoteControlSpec,
+		ph tremote_plugin.PluginHelper, wg *sync.WaitGroup) error {
 	var lock_Mutex	sync.Mutex
 	lock_Mutex.Lock()
 	logm = log
