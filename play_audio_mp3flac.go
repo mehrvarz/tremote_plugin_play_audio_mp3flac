@@ -58,14 +58,13 @@ func init() {
 }
 
 /*
-Action() is the entry point for any TRemote plugin. We need to make
-sure Action() will always return super quickly no matter what. This is why
-we start new goroutines for opertations that take more time. The first thing
-we want to do is to figure out if we are coping with a short or a long press
-event.
+Action() is the entry point for any TRemote plugin. We need to make sure 
+Action() will always return quickly. This is why we start new goroutines for 
+opertations that take more time. The first thing we want to do is to figure 
+out if we are coping with a short or a long press event.
 Arguments:
 pid:             0=P1, 1=P2, etc.
-longpress:       if true, button was specified with P#L and is a longpress
+longpress:       if true, action was specified with P#L and is a longpress
 pressedDuration: if 0, button just pressed; if >0, released, MS since pressed
 wg:              for long term operations use Add() and Done()
 */
@@ -86,7 +85,7 @@ func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, rcs*
 	}
 
 	// here we try to find out if this is a shortpress or longpress button event
-	if pressedDuration==0 && !longpress {
+	if !longpress && pressedDuration==0 {
 		// button has just been pressed; is still pressed
 		go func() {
 			// let's see if it becomes a longpress
@@ -101,9 +100,9 @@ func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, rcs*
 	} else {
 		// button has been released
 		if (*ph.PLastPressActionDone)[pid] {
-			// this button event has already been taken care of
+			// button event has already been taken care of
 		} else {
-			// this is a short-press; let's take care of it
+			// we need to take care of it here
 			(*ph.PLastPressActionDone)[pid] = true
 			//logm.Debugf("%s short press pid=%d %d",pluginname,pid,(*ph.PLastPressActionDone)[pid])
 			go func() {
@@ -142,7 +141,7 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 			buf := make([]byte, 1<<16)
 			runtime.Stack(buf, true)
  			logm.Errorf("%s stack=\n%s", pluginname, buf)
-	   }
+		}
 	}()
 
 	instance := instanceNumber
