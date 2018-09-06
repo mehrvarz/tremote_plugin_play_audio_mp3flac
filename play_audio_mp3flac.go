@@ -62,11 +62,6 @@ Action() is the entry point for any TRemote plugin. We need to make sure
 Action() will always return quickly. This is why we start new goroutines for 
 opertations that take more time. The first thing we want to do is to figure 
 out if we are coping with a short or a long press event.
-Arguments:
-pid:             0=P1, 1=P2, etc.
-longpress:       if true, action was specified with P#L and is a longpress
-pressedDuration: if 0, button just pressed; if >0, released, MS since pressed
-wg:              for long term operations use Add() and Done()
 */
 func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, rcs* tremote_plugin.RemoteControlSpec,
 		ph tremote_plugin.PluginHelper, wg *sync.WaitGroup) error {
