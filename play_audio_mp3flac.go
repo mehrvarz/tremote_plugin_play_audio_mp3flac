@@ -426,8 +426,10 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 		bytesPerSample = bitsPerSample/8
 		logm.Infof("%s mpg123 sampleRate=%d channels=%d", pluginname, sampleRate, channels)
 
-		info := fmt.Sprintf("sampleRate %d",sampleRate)
-		ph.PrintStatus(info)
+		if sampleRate>44100 || bps>16 {
+			info := fmt.Sprintf("sampleRate %d bps %d",sampleRate,bitsPerSample)
+			ph.PrintStatus(info)
+		}
 
 		// make sure output format does not change
 		mp3decoder.FormatNone()
@@ -447,12 +449,13 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 		sampleRate     = int64(flacstream.Info.SampleRate)
 		bitsPerSample  = int(flacstream.Info.BitsPerSample)
 		bytesPerSample = bitsPerSample/8
-		logm.Infof("%s file=%s sampleRate=%d channels=%d bps=%d Bps=%d", 
-			pluginname, pathfile, sampleRate, channels, bitsPerSample, bytesPerSample)
+		logm.Infof("%s flac sampleRate=%d channels=%d bps=%d Bps=%d", 
+			pluginname, sampleRate, channels, bitsPerSample, bytesPerSample)
 
-		info := fmt.Sprintf("bps=%d khz=%d",bitsPerSample,sampleRate)
-		logm.Debugf("%s info=%s",pluginname, info)
-		ph.PrintStatus(info)	// TODO: does not show up?
+		if sampleRate>44100 || bps>16 {
+			info := fmt.Sprintf("sampleRate %d bps %d",sampleRate,bitsPerSample)
+			ph.PrintStatus(info)
+		}
 	}
 
 	// send id3 tags
