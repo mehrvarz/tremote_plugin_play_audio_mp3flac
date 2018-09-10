@@ -426,7 +426,7 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 		bytesPerSample = bitsPerSample/8
 		logm.Infof("%s mpg123 sampleRate=%d channels=%d", pluginname, sampleRate, channels)
 
-		if sampleRate>44100 || bps>16 {
+		if sampleRate>44100 || bitsPerSample>16 {
 			info := fmt.Sprintf("sampleRate %d bps %d",sampleRate,bitsPerSample)
 			ph.PrintStatus(info)
 		}
