@@ -343,6 +343,7 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 
 	// read id3 tags
 	id3tags := ""
+	var id3_artwork* tag.Picture = nil
 	r, err := os.Open(pathfile)
 	if err != nil {
 		logm.Warningf("%s open file %s err=%s",pluginname, pathfile, err.Error())
@@ -380,6 +381,14 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 			id3tags = fileName
 		}
 		logm.Infof("%s tag string: [%s]", pluginname, id3tags)
+		
+		id3_artwork = m.Picture()
+		if id3_artwork==nil {
+			logm.Infof("%s tag artwork: none", pluginname)
+		} else {
+			logm.Infof("%s tag artwork: Ext=[%s] MIME=[%s] Type=[%s] size=%d", pluginname, 
+				id3_artwork.Ext, id3_artwork.MIMEType, id3_artwork.Type, len(id3_artwork.Data))
+		}
 	}
 
 	songsPlayedQueue.Push(&go_queue.Node{fileName})
@@ -446,7 +455,15 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, 
 		ph.PrintStatus(info)	// TODO: does not show up?
 	}
 
+	// send id3 tags
 	ph.PrintInfo(id3tags)
+
+	// send artwork
+	if id3_artwork!=nil && len(id3_artwork.Data)>0 {
+		ph.ImageInfo(id3_artwork.Data,id3_artwork.MIMEType)
+	} else {
+		ph.ImageInfo(nil,"")
+	}
 
 	logm.Debugf("%s (%d) portaudio.Initialize()", pluginname,instance)
 	portaudio.Initialize()
