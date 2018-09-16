@@ -26,6 +26,12 @@ If you intend to modify this plugin or create a similar one, you should also tak
 
 You can use the runtrp tool to run TRemote plugins from the command line. Download runtrp for [linux-armv6l](https://github.com/mehrvarz/tremote_plugin/tree/master/bin.linux.ARM6) and for [linux-amd64](https://github.com/mehrvarz/tremote_plugin/tree/master/bin.linux.AMD64).
 
+You may need to install a package before you can build this package:
+
+```
+sudo apt install libmpg123-dev
+```
+
 
 # Button mapping
 

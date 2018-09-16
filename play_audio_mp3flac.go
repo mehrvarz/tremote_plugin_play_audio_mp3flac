@@ -45,7 +45,7 @@ const (
 var (
 	pluginname          = "play_audio_mp3flac"
 	logm                log.Logger
-	songsPlayedQueue    *go_queue.Queue = nil
+	songsPlayedQueueMap map[string]*go_queue.Queue
 	instanceNumber      = 0
 	AudioControl        = "amixer set Master -q"
 	abortFolderShuffle  = false
@@ -53,8 +53,7 @@ var (
 )
 
 func init() {
-	// songsPlayedQueue is used to keep a list of the last n played songs
-	songsPlayedQueue = go_queue.NewQueue(queueSize)
+	songsPlayedQueueMap = make(map[string]*go_queue.Queue)	// a map of queues, one per folder
 }
 
 /*
@@ -187,9 +186,15 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 	lock_Mutex.Unlock()
 	folder := strArray[0]
 
+	songsPlayedQueue := songsPlayedQueueMap[folder]
+	if songsPlayedQueue==nil {
+		songsPlayedQueue = go_queue.NewQueue(queueSize)
+		songsPlayedQueueMap[folder] = songsPlayedQueue
+	}
+
 	if longpress {
 		// play previous song from songsPlayedQueue
-		logm.Infof("%s (%d) start long-press step back #########################",pluginname,instance)
+		logm.Infof("%s (%d) start long-press step back",pluginname,instance)
 
 		currentFile := songsPlayedQueue.Pop()
 		if currentFile == nil {
@@ -205,7 +210,7 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 		}
 
 		pathfile := folder + "/" + previousFile.Value
-		if playSong(previousFile.Value,pathfile,ph,instance) {
+		if playSong(previousFile.Value,pathfile,ph,instance,songsPlayedQueue) {
 			logm.Debugf("%s (%d) done playSong step back - manually aborted",pluginname, instance)
 			goto end
 		}
@@ -288,7 +293,7 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 			abortFolderShuffle = true
 		}
 		
-		if playSong(fileName,pathfile,ph,instance) {
+		if playSong(fileName,pathfile,ph,instance,songsPlayedQueue) {
 			logm.Debugf("%s (%d) done playSong - manually aborted",pluginname, instance)
 			break
 		}
@@ -328,7 +333,8 @@ end:
 	lock_Mutex2.Unlock()
 }
 
-func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper, instance int) bool {
+func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper,
+		instance int, songsPlayedQueue *go_queue.Queue) bool {
 	// returns true if manually aborted or on fatal error
 	isMp3 := false
 	isFlac := false
