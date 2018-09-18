@@ -62,14 +62,13 @@ Action() will always return quickly. This is why we start new goroutines for
 opertations that take more time. The first thing we want to do is to figure 
 out if we are coping with a short or a long press event.
 */
-func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, rcs* tremote_plugin.RemoteControlSpec,
-		ph tremote_plugin.PluginHelper, wg *sync.WaitGroup) error {
+func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, homedir string, rcs *tremote_plugin.RemoteControlSpec, ph tremote_plugin.PluginHelper, wg *sync.WaitGroup) error {
 	var lock_Mutex	sync.Mutex
 	lock_Mutex.Lock()
 	logm = log
 
 	if instanceNumber==0 {
-		firstinstance()
+		firstinstance(homedir)
 	}
 	instanceNumber++
 
@@ -109,9 +108,9 @@ func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, rcs*
 	return nil
 }
 
-func firstinstance() {
+func firstinstance(homedir string) {
 	// do things here that are only supposed to execute on first call
-	readConfig("")
+	readConfig(homedir)
 }
 
 /*
@@ -754,16 +753,17 @@ func readConfig(path string) int {
 		}
 		if line != "" {
 			//logm.Infof("readConfig line: ["+line+"]")
-			linetokens := strings.Split(line, "=")
+			linetokens := strings.SplitN(line, "=",2)
 			//logm.Infof("readConfig tokens: [%v]",linetokens)
 			if len(linetokens) >= 2 {
 				key := strings.TrimSpace(linetokens[0])
 				value := strings.TrimSpace(linetokens[1])
-				logm.Debugf("readConfig key=%s val=%s", key, value)
+				//logm.Debugf("readConfig key=[%s] val=[%s]", key, value)
 				linecount++
 
 				switch key {
 				case "audiocontrol":
+					logm.Debugf("readConfig key=[%s] val=[%s]", key, value)
 					AudioControl = value
 				}
 			}
