@@ -21,10 +21,8 @@ import (
 	"strings"
 	"math/rand"
 	"os"
-	"os/exec"
 	"io"
 	"io/ioutil"
-	"bufio"
 	"sync"
 	"runtime"
 
@@ -47,7 +45,6 @@ var (
 	logm                log.Logger
 	songsPlayedQueueMap map[string]*go_queue.Queue
 	instanceNumber      = 0
-	AudioControl        = "amixer set Master -q"
 	abortFolderShuffle  = false
 	waitingForOlderInstanceToStop = false
 )
@@ -110,7 +107,7 @@ func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, home
 
 func firstinstance(homedir string) {
 	// do things here that are only supposed to execute on first call
-	readConfig(homedir)
+	//readConfig(homedir)
 }
 
 /*
@@ -536,7 +533,8 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper,
 					}
 					defer portaudioStream.Stop()
 
-					audioVolumeUnmute(instance)
+					//audioVolumeUnmute(instance)
+					ph.HostCmd("AudioVolumeUnmute","")
 				}
 
 				j = 0
@@ -600,7 +598,8 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper,
 					}
 					defer portaudioStream.Stop()
 
-					audioVolumeUnmute(instance)
+					//audioVolumeUnmute(instance)
+					ph.HostCmd("AudioVolumeUnmute","")
 				}
 
 				//logm.Debugf("%s frame.BlockSize=%d %d",pluginname, frame.BlockSize,len(frame.Subframes))
@@ -707,26 +706,7 @@ func randomizeFileInfoArray(fileArray []os.FileInfo) {
 	}
 }
 
-func audioVolumeUnmute(instance int) error {
-	logm.Debugf("%s (%d) audioVolumeUnmute()",pluginname,instance)
-	return exe_cmd(AudioControl+" on", true, false, instance)
-}
-
-func exe_cmd(cmd string, logStdout bool, logErr bool, instance int) error {
-	logm.Debugf("%s (%d) exe_cmd: sh [%s]",pluginname,instance,cmd)
-	out, err := exec.Command("sh", "-c", cmd).Output()
-	if err != nil && logErr {
-		errString := err.Error()
-		logm.Warningf("%s (%d) exe_cmd [%s] err=%s", pluginname, instance, cmd, errString)
-	}
-	if out != nil && logStdout {
-		if len(out) > 0 {
-			logm.Infof("%s (%d) exe_cmd out=[%s]",pluginname,instance,out)
-		}
-	}
-	return err
-}
-
+/*
 func readConfig(path string) int {
 	pathfile := "config.txt"
 	if len(path)>0 { pathfile = path + "/config.txt" }
@@ -771,4 +751,5 @@ func readConfig(path string) int {
 	}
 	return linecount
 }
+*/
 
