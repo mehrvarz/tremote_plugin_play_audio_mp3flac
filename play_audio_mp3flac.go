@@ -664,7 +664,8 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper,
 			// default is needed so that the other cases don't block
 		}
 
-		if quitPlayback || abortFolderShuffle {
+		if quitPlayback {
+			logm.Debugf("%s (%d) quitPlayback",pluginname, instance)
 			break
 		}
 	}
