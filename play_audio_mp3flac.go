@@ -71,7 +71,7 @@ func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, home
 	}
 	instanceNumber++
 
-	ph.HostCmd("Screen_On","")
+	ph.HostCmd("ScreenPower","on")
 
 	strArray := rcs.StrArray
 	if longpress {
@@ -540,8 +540,7 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper,
 					}
 					defer portaudioStream.Stop()
 
-					//audioVolumeUnmute(instance)
-					ph.HostCmd("AudioVolumeUnmute","")
+					ph.HostCmd("AudioMute","off")
 				}
 
 				j = 0
@@ -605,8 +604,7 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper,
 					}
 					defer portaudioStream.Stop()
 
-					//audioVolumeUnmute(instance)
-					ph.HostCmd("AudioVolumeUnmute","")
+					ph.HostCmd("AudioMute","off")
 				}
 
 				//logm.Debugf("%s frame.BlockSize=%d %d",pluginname, frame.BlockSize,len(frame.Subframes))

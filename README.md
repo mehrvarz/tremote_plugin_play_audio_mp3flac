@@ -35,7 +35,7 @@ sudo apt install libmpg123-dev
 
 # Button mapping
 
-The following entries in "mapping.txt" bind the jukebox to several buttons and hand over different local locations:
+The following entries in "mapping.txt" bind the jukebox to remote control buttons and hand over specific folder locations:
 
 ```
 P3, Jazz,  play_audio|/media/sda1/Music/Jazz
@@ -57,11 +57,11 @@ Note that a plugin does not know anything about remote controls, about Bluetooth
 
 # Bitperfect Audio
 
-I created this plugin in order to play back my 24/96 audio collection, which is stored in lossless FLAC format. 
-I am using a high quality USB DAC connected to my Raspberry Pi for this purpose.
-Rasbian OS is able to drive a USB DAC with 24 bit, 96 khz audio content in "bitperfect" fashion.
-All that is needed is an app, that will push the audio stream without modifying any bits.
-Unfortunately this is not always given. Some apps get smart about the audio and apply manipulations for some reason or another.
-So here you have a solution that forwards the audio without applying any changes. Enjoy.
+I created this jukebox specifically to play back my 24/96 FLAC audio collection. 
+For this purpose I am using a high fidelity USB DAC connected to my Raspberry Pi.
+Debian based Rasbian OS is able to drive a USB DAC with 24 bit and 96 khz sample rate in "bitperfect" fashion.
+All that is needed is an app that will push the audio stream to the sink without modifying any bits.
+Unfortunately this is not always given. Many audio playback apps slightly modify the audio stream during playback.
+This jukebox application offers a solution that forwards the audio stream without applying any changes. Enjoy.
 
 
