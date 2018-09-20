@@ -60,14 +60,18 @@ opertations that take more time. The first thing we want to do is to figure
 out if we are coping with a short or a long press event.
 */
 func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, homedir string, rcs *tremote_plugin.RemoteControlSpec, ph tremote_plugin.PluginHelper, wg *sync.WaitGroup) error {
+	logm = log
+	//logm.Debugf("%s Action() pid=%d",pluginname,pid)
+
 	var lock_Mutex	sync.Mutex
 	lock_Mutex.Lock()
-	logm = log
 
 	if instanceNumber==0 {
 		firstinstance(homedir)
 	}
 	instanceNumber++
+
+	ph.HostCmd("Screen_On","")
 
 	strArray := rcs.StrArray
 	if longpress {
@@ -84,6 +88,8 @@ func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, home
 				// button is still pressed; job not yet taken care of; this is a longpress; let's take care of it
 				(*ph.PLastPressActionDone)[pid] = true
 				actioncall(true, pid, strArray, ph, wg)
+			} else {
+				//logm.Debugf("%s Action() job outdated",pluginname)
 			}
 		}()
 
@@ -91,6 +97,7 @@ func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, home
 		// button has been released
 		if (*ph.PLastPressActionDone)[pid] {
 			// button event has already been taken care of
+			logm.Debugf("%s Action() button event has already been taken care of",pluginname)
 		} else {
 			// we need to take care of it here
 			(*ph.PLastPressActionDone)[pid] = true
