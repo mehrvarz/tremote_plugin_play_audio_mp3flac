@@ -665,6 +665,11 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper,
 		case <-*ph.PauseAudioPlayerChan:
 			playbackPaused = !playbackPaused
 			logm.Debugf("%s (%d) pausemode set to %v",pluginname, instance, playbackPaused)
+			if playbackPaused {
+				ph.PrintInfo(id3tags+" - paused")
+			} else {
+				ph.PrintInfo(id3tags)
+			}
 		default:
 			// default is needed so that the other cases don't block
 		}
@@ -676,7 +681,7 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper,
 	}
 
 	logm.Debugf("%s (%d) singleSongPlayback finished (framecount=%d)",pluginname, instance,framecount)
-	ph.PrintInfo("")	// note: in case of inloop error, this may clear out the error-msg
+	//ph.PrintInfo("")	// note: in case of inloop error, this may clear out the error-msg
 	return quitPlayback
 }
 
