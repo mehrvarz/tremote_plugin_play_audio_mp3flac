@@ -82,8 +82,23 @@ func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, home
 	if !longpress && pressedDuration==0 {
 		// button has just been pressed; is still pressed
 		go func() {
-			// let's see if it becomes a longpress
-			time.Sleep(tremote_plugin.LongPressDelay * time.Millisecond)
+			// let's see if this becomes a longpress if pressed for tremote_plugin.LongPressDelay ms
+			var msWaited time.Duration = 0
+			for msWaited < tremote_plugin.LongPressDelay {
+				time.Sleep(50 * time.Millisecond)
+				msWaited += 50
+				if (*ph.PLastPressActionDone)[pid] {
+					// button has been taken care of
+					break
+				}
+				if (*ph.PLastPressedMS)[pid] == 0 {
+					// button is no longer pressed
+					break
+				}
+				// button is still pressed
+			}
+			// time is up or button released or button taken care of
+
 			if (*ph.PLastPressedMS)[pid]>0 && !(*ph.PLastPressActionDone)[pid] {
 				// button is still pressed; job not yet taken care of; this is a longpress; let's take care of it
 				(*ph.PLastPressActionDone)[pid] = true
@@ -113,7 +128,7 @@ func Action(log log.Logger, pid int, longpress bool, pressedDuration int64, home
 }
 
 func firstinstance(homedir string) {
-	// do things here that are only supposed to execute on first call
+	// do things here that are supposed to execute on first call only
 	//readConfig(homedir)
 }
 
@@ -127,10 +142,14 @@ If longpress is set to false, we start our main jukebox funktion and enter a
 random song playback loop.
 */
 func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.PluginHelper, wg *sync.WaitGroup) {
+	// why
 	var lock_Mutex	sync.Mutex
 	lock_Mutex.Lock()
 
+	// why
 	wg.Add(1)
+
+	// why
 	defer func() {
 		if err := recover(); err != nil {
 			wg.Done()
@@ -276,7 +295,7 @@ func actioncall(longpress bool, pid int, strArray []string, ph tremote_plugin.Pl
 
 			if fileName=="" {
 				// if PopOldest() fails, do not continue
-				if songsPlayedQueue.PopOldest()!=nil {
+				if songsPlayedQueue.PopOldest(false)!=nil {
 					logm.Infof("%s found no song; try again after removing oldes song from queue",pluginname)
 					//ph.PrintStatus("cannot find any unplayed files")
 					continue
@@ -357,6 +376,7 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper,
 	if err != nil {
 		logm.Warningf("%s open file %s err=%s",pluginname, pathfile, err.Error())
 		ph.PrintStatus("error open file %s"+pathfile)
+		ph.PrintInfo("")
 		return false
 	}
 	defer r.Close()
@@ -418,6 +438,7 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper,
 		if err != nil {
 			logm.Warningf("%s error creating mp3 decoder err=%s",pluginname, err.Error())
 			ph.PrintStatus("error creating mp3 decoder "+err.Error())
+			ph.PrintInfo("")
 			return false
 		}
 
@@ -425,6 +446,7 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper,
 		if err != nil {
 			logm.Warningf("%s error open mp3 file err=%s",pluginname, err.Error())
 			ph.PrintStatus("error open mp3 file "+err.Error())
+			ph.PrintInfo("")
 			return false
 		}
 		defer mp3decoder.Close()
@@ -450,6 +472,7 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper,
 		if err != nil {
 			logm.Warningf("%s error open flac file err=%s",pluginname, err.Error())
 			ph.PrintStatus("error open flac file %s"+err.Error())
+			ph.PrintInfo("")
 			return false
 		}
 		defer flacstream.Close()
@@ -660,6 +683,7 @@ func playSong(fileName string, pathfile string, ph tremote_plugin.PluginHelper,
 		case <-*ph.StopAudioPlayerChan:
 			// we are being aborted by Stop_current_stream()
 			logm.Debugf("%s (%d) stopped by StopAudioPlayerChan",pluginname, instance)
+			//ph.HostCmd("AudioMute","on")
 			abortFolderShuffle = true
 			quitPlayback = true
 		case <-*ph.PauseAudioPlayerChan:
